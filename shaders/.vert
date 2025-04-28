@@ -1,0 +1,16 @@
+#version 300 es
+precision mediump float;
+
+layout (location = 0) in vec3 vPosition;
+layout (location = 1) in vec4 vColor;
+
+uniform mat4 viewModel;
+uniform mat4 projection;
+out vec4 color;
+
+void main()
+{
+    //    vColor=vec4(1.0, 0, 0, 1.0);
+    gl_Position = projection * viewModel * vec4(vPosition.xyz, 1.0);
+    color = vColor;
+}
