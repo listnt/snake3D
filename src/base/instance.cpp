@@ -37,7 +37,7 @@ void instance::Rotate(Vector3f R) { this->R = R; }
 
 void instance::Scale(Vector3f S) { this->S = S; }
 
-void instance::ReorderRenderForTransparent(Matrix4x4 ProjectionViewModel) {
+void instance::ReorderRenderForTransparent(Matrix4x4 ViewModel) {
     for (int i = 0; i < this->trianglesZ.size(); i++) {
         auto whichTriangle = i * 3;
         float maxZ = 10e10;
@@ -46,7 +46,7 @@ void instance::ReorderRenderForTransparent(Matrix4x4 ProjectionViewModel) {
             centroid = centroid + points[triangles[whichTriangle + j]] / 3.0f;
         }
 
-        trianglesZ[i] = (ProjectionViewModel * Vector4f(centroid, 1.0)).z;
+        trianglesZ[i] = (ViewModel * Vector4f(centroid, 1.0)).z;
     }
 
 
@@ -59,37 +59,14 @@ void instance::ReorderRenderForTransparent(Matrix4x4 ProjectionViewModel) {
         return trianglesZ[a] < trianglesZ[b];
     });
 
-    // Fix all elements one by one
+    std::vector<int> newTrianles(trianglesZ.size() * 3);
     for (int i = 0; i < indices.size(); i++) {
-        // While index[i] and arr[i] are not fixed
-        while (indices[i] != i) {
-            reorderingOccured = true;
-            // Store values of the target (or correct)
-            // position before placing arr[i] there
-            int oldTargetI = indices[indices[i]];
-
-            int oldTargetE1 = triangles[indices[i] * 3];
-            int oldTargetE2 = triangles[indices[i] * 3 + 1];
-            int oldTargetE3 = triangles[indices[i] * 3 + 2];
-
-            // Place arr[i] at its target (or correct)
-            // position. Also copy corrected index for
-            // new position
-            triangles[indices[i] * 3] = triangles[i * 3];
-            triangles[indices[i] * 3 + 1] = triangles[i * 3 + 1];
-            triangles[indices[i] * 3 + 2] = triangles[i * 3 + 2];
-
-            indices[indices[i]] = indices[i];
-
-            // Copy old target values to arr[i] and
-            // index[i]
-            indices[i] = oldTargetI;
-
-            triangles[i * 3] = oldTargetE1;
-            triangles[i * 3 + 1] = oldTargetE2;
-            triangles[i * 3 + 2] = oldTargetE3;
-        }
+        newTrianles[i * 3] = triangles[indices[i] * 3];
+        newTrianles[i * 3 + 1] = triangles[indices[i] * 3 + 1];
+        newTrianles[i * 3 + 2] = triangles[indices[i] * 3 + 2];
     }
+    triangles = newTrianles;
+
 
     if (reorderingOccured) {
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
