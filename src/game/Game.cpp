@@ -6,13 +6,28 @@
 
 #include <cstring>
 
-Game::Game(int mapSize): SnakeI(mapSize), MapI(mapSize, {0, 1.0, 1.0, 0.5}) {
+Game::Game(int mapSize): SnakeI(mapSize), MapI(mapSize, {0, 1.0, 1.0, 0.5}), mapSize(mapSize) {
     MapI.Transform({
         -static_cast<GLfloat>(mapSize / 2.0),
         -static_cast<GLfloat>(mapSize / 2.0),
         -static_cast<GLfloat>(mapSize / 2.0)
     });
     MapI.Scale({static_cast<GLfloat>(mapSize), static_cast<GLfloat>(mapSize), static_cast<GLfloat>(mapSize)});
+
+    auto appleModel = createCube({1, 0, 0, 1});
+    apple.loadModel(appleModel);
+    delete appleModel;
+
+    applePos = {mapSize / 2 + 1, 0, (int) mapSize / 2 + 1};
+
+    apple.Scale({0.9, 0.9, 0.9});
+    apple.Transform({
+        static_cast<GLfloat>(applePos.i - (int) (mapSize + 2) / 2),
+        static_cast<GLfloat>(applePos.j - (int) (mapSize + 2) / 2),
+        static_cast<GLfloat>(applePos.k - (int) (mapSize + 2) / 2)
+    });
+
+    // CreateApple();
 }
 
 bool Game::Controls(int eventType, const EmscriptenKeyboardEvent *keyEvent, void *userData) {
@@ -31,34 +46,93 @@ bool Game::Controls(int eventType, const EmscriptenKeyboardEvent *keyEvent, void
 }
 
 
-void Game::GameLoop(Matrix4x4 camera) {
-    SnakeI.move();
+void Game::GameLoop(Matrix4x4 &camera) {
+    if (!isActive)
+        return;
+
+    isActive = SnakeI.move();
 
     auto headPos = SnakeI.HeadPos();
 
-    auto right = Vector3f(camera.m[0][0], camera.m[0][1], camera.m[0][2]);
-    auto forward = Vector3f(camera.m[2][0], camera.m[2][1], camera.m[2][2]);
+    auto headPosOnGrid = SnakeI.HeadPosOnGrid();
 
-    auto angleXZ = acos(headPos.dot(forward) / (headPos.length() * forward.length()));
-    auto angleZY = acos(headPos.dot(right) / (headPos.length() * right.length()));
+    if (headPosOnGrid == applePos) {
+        CreateApple();
+        SnakeI.grow(1);
+    }
 
-    // targetCamera =
-    //         pitch(angleXZ) *
-    //         camera;
+    targetD = headPos.normalize() * 15;
+    initialD = currentD;
+
+    targetUp = SnakeI.GetForward();
+    initialUp = currentUp;
+
+    t = 0;
 }
 
 void Game::RenderLoop(Matrix4x4 &camera) {
-    // camera = targetCamera;
+    t += 0.01;
+    t = std::clamp(t, 0.0f, 1.0f);
+
+    if (t < 0.95) {
+        currentD = Lerp(initialD, targetD, t);
+        currentUp = Lerp(initialUp, targetUp, t);
+    } else {
+        currentD = targetD;
+        currentUp = targetUp;
+    }
+
+    camera = lookAt(currentD, {0, 0, 0}, currentUp);
 
     glDisable(GL_BLEND);
     glDepthMask(GL_TRUE);
 
-    SnakeI.Render(inverse(camera));
+    SnakeI.Render(camera);
+    apple.Render(camera);
 
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     // Turn off updating of the z-buffer
     glDepthMask(GL_FALSE);
 
-    MapI.Render(inverse(camera));
+    MapI.Render(camera);
+
+    glDisable(GL_BLEND);
+}
+
+void Game::CreateApple() {
+    while (SnakeI.isOccupied(applePos)) {
+        auto x = rand() % (mapSize) + 1;
+        auto y = rand() % (mapSize) + 1;
+        auto z = rand() % 6;
+
+        switch (z) {
+            case 0:
+                applePos = {x, y, 0};
+                break;
+            case 1:
+                applePos = {x, y, mapSize + 1};
+                break;
+            case 2:
+                applePos = {x, 0, y};
+                break;
+            case 3:
+                applePos = {x, mapSize + 1, y};
+                break;
+            case 4:
+                applePos = {0, x, y};
+                break;
+            case 5:
+                applePos = {mapSize + 1, x, y};
+                break;
+        }
+    }
+
+    apple.Transform({
+        static_cast<GLfloat>(applePos.i - (int) (mapSize + 2) / 2),
+        static_cast<GLfloat>(applePos.j - (int) (mapSize + 2) / 2),
+        static_cast<GLfloat>(applePos.k - (int) (mapSize + 2) / 2)
+    });
+
+    return;
 }

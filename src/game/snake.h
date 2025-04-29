@@ -24,8 +24,12 @@ private:
     Vector3i Normal;
     Vector3i Forward;
     Vector3i step;
+    std::vector<bool> isActive;
     std::vector<Vector3i> segmentsPos;
     std::vector<instance *> cubes;
+
+    model *redCube;
+    model *greenCube;
 
 public:
     snake(int mapSize);
@@ -36,7 +40,19 @@ public:
 
     Vector3f HeadPos();
 
-    void move();
+    Vector3i HeadPosOnGrid();
+
+    Vector3f GetRight();
+
+    Vector3f GetForward();
+
+    Vector3f GetNormal();
+
+    std::vector<Vector3i> getSegmentsPos();
+
+    bool isOccupied(Vector3i pos);
+
+    bool move();
 
     bool passesRightSide(Vector3i pos, int posOnGridX, int posOnGridY);
 
@@ -45,6 +61,8 @@ public:
     bool passesTopSide(Vector3i pos, int posOnGridX, int posOnGridY);
 
     bool passesBottomSide(Vector3i pos, int posOnGridX, int posOnGridY);
+
+    void grow(int size);
 };
 
 

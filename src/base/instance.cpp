@@ -16,18 +16,16 @@
 void instance::Render(Matrix4x4 View) {
     glBindVertexArray(this->VAO);
 
-    auto ViewModel = translate(T.x, T.y, T.z) *
+    auto ViewModel = View * translate(T.x, T.y, T.z) *
                      roll(R.z) * pitch(R.y) * yaw(R.x)
                      * scale(S.x, S.y, S.z);
 
-    ViewModel = View * ViewModel;
 
     if (hasTransparentElements) {
         ReorderRenderForTransparent(ViewModel);
     }
 
-    auto modelMatrix = glGetUniformLocation(userData->programObject, "viewModel");
-    glUniformMatrix4fv(modelMatrix, 1,GL_FALSE, flatten(ViewModel).data());
+    glUniformMatrix4fv(ViewModelMat, 1,GL_FALSE, flatten(ViewModel).data());
 
     glDrawElements(GL_TRIANGLES, triangles.size(), GL_UNSIGNED_INT, 0);
     glBindVertexArray(0);
@@ -152,6 +150,42 @@ model *createCube(Vector4f color) {
             12, 13, 14, 12, 14, 15, // bottom
             16, 17, 18, 16, 18, 19, // right
             20, 21, 22, 20, 22, 23 // left
+        }, {
+            // Front face
+            {0, 0, 1},
+            {0, 0, 1},
+            {0, 0, 1},
+            {0, 0, 1},
+
+            // Back face
+            {0, 0, -1},
+            {0, 0, -1},
+            {0, 0, -1},
+            {0, 0, -1},
+
+            // Top face
+            {0, 1, 0},
+            {0, 1, 0},
+            {0, 1, 0},
+            {0, 1, 0},
+
+            // Bottom face
+            {0, -1, 0},
+            {0, -1, 0},
+            {0, -1, 0},
+            {0, -1, 0},
+
+            // Right face
+            {1, 0, 0},
+            {1, 0, 0},
+            {1, 0, 0},
+            {1, 0, 0},
+
+            // Left face
+            {-1, 0, 0},
+            {-1, 0, 0},
+            {-1, 0, 0},
+            {-1, 0, 0},
         }
     );
 

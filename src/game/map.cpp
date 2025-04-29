@@ -8,11 +8,32 @@ MapInstanse::MapInstanse(int size, Vector4f color): size(size), color(color) {
     float x = 1.0 / (1.1 * size);
 
     std::vector<Vector3f> points;
+    std::vector<Vector3f> normals;
     std::vector<GLint> triangles;
     std::vector<Vector4f> colors;
 
     for (int i = 0; i < size; i++) {
         for (int j = 0; j < size; j++) {
+            for (int k = 0; k < 4; k++) {
+                normals.push_back({0, 0, 1});
+            }
+            for (int k = 0; k < 4; k++) {
+                normals.push_back({0, 0, -1});
+            }
+            for (int k = 0; k < 4; k++) {
+                normals.push_back({-1, 0, 0});
+            }
+            for (int k = 0; k < 4; k++) {
+                normals.push_back({1, 0, 0});
+            }
+            for (int k = 0; k < 4; k++) {
+                normals.push_back({0, 1, 0});
+            }
+            for (int k = 0; k < 4; k++) {
+                normals.push_back({0, -1, 0});
+            }
+
+
             // front
             points.push_back({
                 static_cast<GLfloat>((2 * i + 1) * (0.05 * x) + i * x),
@@ -172,7 +193,7 @@ MapInstanse::MapInstanse(int size, Vector4f color): size(size), color(color) {
         }
     }
 
-    auto mapModel = new model(points, colors, triangles);
+    auto mapModel = new model(points, colors, triangles, normals);
 
     loadModel(mapModel);
 

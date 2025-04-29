@@ -1,5 +1,5 @@
 var Module = {
-    onRuntimeInitialized: function() {
+    onRuntimeInitialized: function () {
         var canvas = document.querySelector('canvas');
 
         canvas.width = 800;
@@ -10,8 +10,8 @@ var Module = {
         const result = Module.ccall(
             "init",
             'number',
-            ['number', 'number'],
-            [canvas.width, canvas.height]);
+            ['number', 'number', 'bool'],
+            [canvas.width, canvas.height, false]);
 
         console.log("[JS] WebGL initialization result: ", result);
     },

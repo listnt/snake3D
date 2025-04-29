@@ -7,10 +7,16 @@
 snake::snake(int mapSize) {
     this->mapSize = mapSize;
     segmentsPos.push_back({mapSize / 2 + 1, mapSize / 2 + 1, 0});
+    isActive.push_back(true);
 
     auto cube = createCube({0, 1, 0, 1});
+    greenCube = cube;
+
+    auto redc = createCube({1, 0, 0, 1});
+    redCube = redc;
 
     auto cubeI = new instance();
+    cubeI->Scale({0.95, 0.95, 0.95});
     cubeI->loadModel(cube);
 
     cubes.push_back(cubeI);
@@ -54,57 +60,107 @@ void snake::Render(Matrix4x4 View) {
 }
 
 Vector3f snake::HeadPos() {
-    return {segmentsPos[0]};
+    return {
+        static_cast<GLfloat>(segmentsPos[0].i - (int) (mapSize + 2) / 2),
+        static_cast<GLfloat>(segmentsPos[0].j - (int) (mapSize + 2) / 2),
+        static_cast<GLfloat>(segmentsPos[0].k - (int) (mapSize + 2) / 2)
+    };
 }
 
-void snake::move() {
-    for (auto &pos: segmentsPos) {
-        pos = pos + step;
-        auto posOnGridX = abs(pos.i * Right.i + pos.j * Right.j + pos.k * Right.k);
-        auto posOnGridY = abs(pos.i * Forward.i + pos.j * Forward.j + pos.k * Forward.k);
-        if (passesRightSide(pos, posOnGridX, posOnGridY)) {
-            pos = pos + step;
-            step = -Normal;
+Vector3i snake::HeadPosOnGrid() {
+    return segmentsPos[0];
+}
 
-            auto tmpX = Right;
-            Right = -Normal;
-            Normal = tmpX;
+Vector3f snake::GetRight() {
+    return Right;
+}
 
-            pos = pos + step;
-        } else if (passesLeftSide(pos, posOnGridX, posOnGridY)) {
-            pos = pos + step;
-            step = -Normal;
+Vector3f snake::GetForward() {
+    return Forward;
+}
 
-            auto tmpX = Right;
-            Right = Normal;
-            Normal = -tmpX;
+Vector3f snake::GetNormal() {
+    return Normal;
+}
 
-            pos = pos + step;
-        } else if (passesTopSide(pos, posOnGridX, posOnGridY)) {
-            pos = pos + step;
-            step = -Normal;
+std::vector<Vector3i> snake::getSegmentsPos() {
+    return segmentsPos;
+}
 
-            auto tmpY = Forward;
-            Forward = -Normal;
-            Normal = tmpY;
-
-            pos = pos + step;
-        } else if (passesBottomSide(pos, posOnGridX, posOnGridY)) {
-            pos = pos + step;
-            step = -Normal;
-
-            auto tmpY = Forward;
-            Forward = Normal;
-            Normal = -tmpY;
-
-            pos = pos + step;
+bool snake::isOccupied(Vector3i tile) {
+    for (auto pos: segmentsPos) {
+        if (pos==tile) {
+            return true;
         }
     }
+    return false;
+}
+
+
+bool snake::move() {
+    auto &pos = segmentsPos[0];
+
+    auto prevPos = pos;
+
+    pos = pos + step;
+    auto posOnGridX = abs(pos.i * Right.i + pos.j * Right.j + pos.k * Right.k);
+    auto posOnGridY = abs(pos.i * Forward.i + pos.j * Forward.j + pos.k * Forward.k);
+    if (passesRightSide(pos, posOnGridX, posOnGridY)) {
+        step = -Normal;
+
+        auto tmpX = Right;
+        Right = -Normal;
+        Normal = tmpX;
+
+        pos = pos + step;
+    } else if (passesLeftSide(pos, posOnGridX, posOnGridY)) {
+        step = -Normal;
+
+        auto tmpX = Right;
+        Right = Normal;
+        Normal = -tmpX;
+
+        pos = pos + step;
+    } else if (passesTopSide(pos, posOnGridX, posOnGridY)) {
+        step = -Normal;
+
+        auto tmpY = Forward;
+        Forward = -Normal;
+        Normal = tmpY;
+
+        pos = pos + step;
+    } else if (passesBottomSide(pos, posOnGridX, posOnGridY)) {
+        step = -Normal;
+
+        auto tmpY = Forward;
+        Forward = Normal;
+        Normal = -tmpY;
+
+        pos = pos + step;
+    }
+
+    auto isGame = true;
+    Vector3i prevPos1;
+    for (int i = 1; i < segmentsPos.size(); i++) {
+        if (segmentsPos[0] == segmentsPos[i] && isActive[i]) {
+            cubes[0]->loadModel(redCube);
+
+            isGame = false;
+        }
+        prevPos1 = segmentsPos[i];
+        segmentsPos[i] = prevPos;
+        prevPos = prevPos1;
+        if (segmentsPos[i] != segmentsPos[i - 1]) {
+            isActive[i] = true;
+        }
+    }
+
+    return isGame;
 }
 
 bool snake::passesRightSide(Vector3i pos, int posOnGridX, int posOnGridY) {
     if (step.i == Right.i && step.j == Right.j && step.k == Right.k && d == RIGHT) {
-        if (posOnGridX == mapSize || posOnGridX <= 1) {
+        if (posOnGridX > mapSize || posOnGridX < 1) {
             return true;
         }
     }
@@ -114,7 +170,7 @@ bool snake::passesRightSide(Vector3i pos, int posOnGridX, int posOnGridY) {
 
 bool snake::passesLeftSide(Vector3i pos, int posOnGridX, int posOnGridY) {
     if (step.i == -Right.i && step.j == -Right.j && step.k == -Right.k && d == LEFT) {
-        if (posOnGridX == mapSize || posOnGridX <= 1) {
+        if (posOnGridX > mapSize || posOnGridX < 1) {
             return true;
         }
     }
@@ -124,7 +180,7 @@ bool snake::passesLeftSide(Vector3i pos, int posOnGridX, int posOnGridY) {
 
 bool snake::passesTopSide(Vector3i pos, int posOnGridX, int posOnGridY) {
     if (step.i == Forward.i && step.j == Forward.j && step.k == Forward.k && d == UP) {
-        if (posOnGridY == mapSize || posOnGridY <= 1) {
+        if (posOnGridY > mapSize || posOnGridY < 1) {
             return true;
         }
     }
@@ -135,10 +191,25 @@ bool snake::passesTopSide(Vector3i pos, int posOnGridX, int posOnGridY) {
 
 bool snake::passesBottomSide(Vector3i pos, int posOnGridX, int posOnGridY) {
     if (step.i == -Forward.i && step.j == -Forward.j && step.k == -Forward.k && d == DOWN) {
-        if (posOnGridY == mapSize || posOnGridY <= 1) {
+        if (posOnGridY > mapSize || posOnGridY < 1) {
             return true;
         }
     }
 
     return false;
+}
+
+
+void snake::grow(int size) {
+    for (int i = 0; i < size; i++) {
+        segmentsPos.push_back(segmentsPos[segmentsPos.size() - 1]);
+
+        auto cubeI = new instance();
+        cubeI->Scale({0.95, 0.95, 0.95});
+        cubeI->loadModel(greenCube);
+
+        cubes.push_back(cubeI);
+
+        isActive.push_back(false);
+    }
 }

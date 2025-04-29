@@ -161,10 +161,35 @@ snake *snakeI;
 
 std::vector<instance *> opaqueObjs;
 std::vector<instance *> transparentObjs;
+GLint projectMat;
+Matrix4x4 projection;
 Matrix4x4 camera;
 Game *game;
+GLint lightPos;
 
 int oldTimestamp = 0;
+
+
+void initScene() {
+    camera = lookAt({0, -13, -6}, {0, 0, 0}, {0, 1, 0});
+    instance *pivot = new instance();
+    auto redCube = createCube({1, 0, 0, 1});
+
+    pivot->loadModel(redCube);
+    opaqueObjs.push_back(pivot);
+
+    projectMat = glGetUniformLocation(userData->programObject, "projection");
+    projection = computePerspectiveMatrix(
+        M_PI * 0.3,
+        static_cast<float>(userData->WindowWidth) / static_cast<float>(userData->WindowHeight),
+        1,
+        50.0);
+
+
+    lightPos = glGetUniformLocation(userData->programObject, "lightPos");
+    glUniform3f(lightPos, 0, 0, 20);
+}
+
 ///
 // Draw a triangle using the shader pair created in Init()
 //
@@ -172,16 +197,16 @@ void Draw() {
     int timestamp = std::chrono::duration_cast<std::chrono::milliseconds>(
         std::chrono::system_clock::now().time_since_epoch()).count();
     glDepthMask(true);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    for (auto obj: opaqueObjs) {
+        obj->Render(camera);
+    }
 
     // camera = pitch(timestamp / 1000.0) * translate(0, 0, 10 + 5 * sin(timestamp / 1000.0));
 
-    const auto projection = computePerspectiveMatrix(
-        M_PI * 0.3,
-        static_cast<float>(userData->WindowWidth) / static_cast<float>(userData->WindowHeight),
-        1,
-        50.0);
-    auto projectionMatrix = glGetUniformLocation(userData->programObject, "projection");
-    glUniformMatrix4fv(projectionMatrix, 1,GL_FALSE, flatten(projection).data());
+
+    glUniformMatrix4fv(projectMat, 1,GL_FALSE, flatten(projection).data());
 
     if (timestamp - oldTimestamp > 500.0) {
         oldTimestamp = timestamp;
@@ -200,7 +225,7 @@ UserData *userData;
 
 extern "C" {
 #endif
-int init(const int width, const int height) {
+int EMSCRIPTEN_KEEPALIVE init(const int width, const int height, bool debug) {
     if (userData) {
         printf("window already initialized\n");
 
@@ -213,7 +238,9 @@ int init(const int width, const int height) {
     userData->WindowWidth = width;
 
 
-    // auto ctx = initContext();
+    if (!debug) {
+        auto ctx = initContext();
+    }
 
     const auto programObject = initShaders();
     // Store the program object
@@ -228,8 +255,7 @@ int init(const int width, const int height) {
     // glClearDepthf(1.0f);
 
     game = new Game(7);
-
-    camera = lookAt({0, 0, 10 + 5},{0,0,0},{0,1,0});
+    initScene();
     emscripten_set_keydown_callback("#canvas", nullptr, true,
                                     [](int k,const EmscriptenKeyboardEvent *e,void * u) -> EM_BOOL{
                                     return game->Controls(k,e,u);
@@ -253,13 +279,11 @@ int main(int argc, char **argv) {
     // SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
     auto window = SDL_CreateWindow("title",
                                    SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-                                   1280, 960,
+                                   640, 480,
                                    SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_SHOWN);
-
-
     auto gl_context = SDL_GL_CreateContext(window);
 
-    init(1280, 960);
+    init(640, 480, false);
 
     return 1;
 }

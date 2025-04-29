@@ -92,7 +92,7 @@ Matrix4x4 computePerspectiveMatrix(float fovInRads, float aspectRatio, float nea
 
 Matrix4x4 lookAt(Vector3f eye, Vector3f center, Vector3f u) {
     Matrix4x4 lookAt = Matrix4x4();
-    Vector3f forward = (center - eye).normalize();
+    Vector3f forward = (eye - center).normalize();
     Vector3f right = forward.cross(u).normalize();
     Vector3f up = right.cross(forward).normalize();
 
@@ -110,7 +110,7 @@ Matrix4x4 lookAt(Vector3f eye, Vector3f center, Vector3f u) {
     lookAt.m[3][2] = 0;
     lookAt.m[3][3] = 1;
 
-    return lookAt * translate(eye.x, eye.y, eye.z);
+    return lookAt * translate(-eye.x, -eye.y, -eye.z);
 }
 
 Matrix4x4 inverse(Matrix4x4 m) {
@@ -176,4 +176,8 @@ Matrix4x4 inverse(Matrix4x4 m) {
     }
 
     return Inv;
+}
+
+Vector3f Lerp(Vector3f a, Vector3f b, double t) {
+    return Vector3f(a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t, a.z + (b.z - a.z) * t);
 }

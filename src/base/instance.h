@@ -16,11 +16,13 @@ protected:
     std::vector<Vector3f> points;
     std::vector<Vector4f> colors;
     std::vector<GLint> triangles;
+    std::vector<Vector3f> normals;
 
 public:
     model(const std::vector<Vector3f> &points, const std::vector<Vector4f> &colors,
-          const std::vector<GLint> &triangles): points(points),
-                                                triangles(triangles), colors(colors) {
+          const std::vector<GLint> &triangles, const std::vector<Vector3f> &normals): points(points),
+        triangles(triangles), colors(colors),
+        normals(normals) {
     }
 
     model() = default;
@@ -36,6 +38,10 @@ public:
     std::vector<GLint> getTriangles() {
         return triangles;
     }
+
+    std::vector<Vector3f> getNormals() {
+        return normals;
+    }
 };
 
 class instance : public model {
@@ -45,8 +51,11 @@ protected:
     GLuint VAO = 0;
     GLuint EBO = 0;
     GLuint Colors = 0;
+    GLuint Normals = 0;
 
     std::vector<float> trianglesZ;
+
+    GLint ViewModelMat;
 
 public:
     Vector3f T, S, R;
@@ -55,13 +64,24 @@ public:
     };
 
     void loadModel(model *obj) {
+        if (VAO != 0) {
+            glDeleteBuffers(1, &EBO);
+            glDeleteBuffers(1, &VBO);
+            glDeleteBuffers(1, &Colors);
+            glDeleteBuffers(1, &Normals);
+            glDeleteBuffers(1, &VAO);
+        }
+
+
         points = obj->getPoints();
         triangles = obj->getTriangles();
         colors = obj->getColors();
+        normals = obj->getNormals();
 
         glGenVertexArrays(1, &VAO);
         glGenBuffers(1, &VBO);
         glGenBuffers(1, &Colors);
+        glGenBuffers(1, &Normals);
         glGenBuffers(1, &EBO);
 
         glBindVertexArray(VAO);
@@ -87,6 +107,12 @@ public:
         glVertexAttribPointer(color, 4,GL_FLOAT, 0, sizeof(Vector4f), 0);
         glEnableVertexAttribArray(color);
 
+        glBindBuffer(GL_ARRAY_BUFFER, Normals);
+        glBufferData(GL_ARRAY_BUFFER, normals.size() * sizeof(Vector3f), normals.data(),GL_STATIC_DRAW);
+        auto normal = glGetAttribLocation(userData->programObject, "vNormal");
+        glVertexAttribPointer(normal, 3,GL_FLOAT, 0, sizeof(Vector3f), 0);
+        glEnableVertexAttribArray(normal);
+
 
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, triangles.size() * sizeof(GLint), triangles.data(),
@@ -94,6 +120,9 @@ public:
 
 
         glBindVertexArray(0);
+
+
+        ViewModelMat = glGetUniformLocation(userData->programObject, "viewModel");
     }
 
     ~instance() {
@@ -101,6 +130,7 @@ public:
         glDeleteBuffers(1, &EBO);
         glDeleteBuffers(1, &VBO);
         glDeleteBuffers(1, &Colors);
+        glDeleteBuffers(1, &Normals);
         glDeleteBuffers(1, &VAO);
     }
 

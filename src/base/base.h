@@ -36,6 +36,14 @@ public:
     Vector3i operator-() {
         return {-i, -j, -k};
     }
+
+    bool operator!=(Vector3i value) {
+        return i != value.i || j != value.j || k != value.k;
+    }
+
+    bool operator==(Vector3i vector3_i) {
+        return i == vector3_i.i && j == vector3_i.j && k == vector3_i.k;
+    }
 };
 
 class Vector3f {
@@ -52,7 +60,7 @@ public:
     }
 
     Vector3f cross(Vector3f b) {
-        return {y * b.z - z * b.y, -(x * b.z - z * b.x), x * b.y + y * b.x};
+        return {y * b.z - z * b.y, -(x * b.z - z * b.x), x * b.y - y * b.x};
     }
 
     Vector3f operator-() {
@@ -173,5 +181,7 @@ Matrix4x4 computePerspectiveMatrix(float fovInRads, float aspectRatio, float nea
 Matrix4x4 inverse(Matrix4x4 m);
 
 Matrix4x4 lookAt(Vector3f eye, Vector3f center, Vector3f up);
+
+Vector3f Lerp(Vector3f a, Vector3f b, double t);
 
 #endif //BASE_H
