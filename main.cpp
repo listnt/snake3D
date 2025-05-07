@@ -167,7 +167,7 @@ Matrix4x4 camera;
 Game *game;
 GLint lightPos;
 
-int oldTimestamp = 0;
+long long oldTimestamp = 0;
 
 
 void initScene() {
@@ -194,8 +194,18 @@ void initScene() {
 // Draw a triangle using the shader pair created in Init()
 //
 void Draw() {
-    int timestamp = std::chrono::duration_cast<std::chrono::milliseconds>(
-        std::chrono::system_clock::now().time_since_epoch()).count();
+    // Get the current time from the system clock
+    auto now = std::chrono::system_clock::now();
+
+    // Convert the current time to time since epoch
+    auto duration = now.time_since_epoch();
+
+    // Convert duration to milliseconds
+    auto milliseconds
+            = std::chrono::duration_cast<std::chrono::milliseconds>(
+                duration)
+            .count();
+
     glDepthMask(true);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -208,8 +218,8 @@ void Draw() {
 
     glUniformMatrix4fv(projectMat, 1,GL_FALSE, flatten(projection).data());
 
-    if (timestamp - oldTimestamp > 500.0) {
-        oldTimestamp = timestamp;
+    if (milliseconds - oldTimestamp > 500) {
+        oldTimestamp = milliseconds;
         game->GameLoop(camera);
     }
 
@@ -217,6 +227,8 @@ void Draw() {
 
 
     // glFlush();
+    // 1716441405153
+    // 1746596110759
 }
 
 UserData *userData;
